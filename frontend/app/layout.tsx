@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Roboto_Slab } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import Providers from "./providers/providers";
+import { Auth0Provider } from "@auth0/nextjs-auth0/client";
 
 const robotoSlab = Roboto_Slab({
   subsets: ["latin"],
@@ -42,7 +43,9 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+        <Providers>
+          <Auth0Provider>{children}</Auth0Provider>
+        </Providers>
       </body>
     </html>
   );

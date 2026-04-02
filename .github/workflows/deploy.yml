@@ -25,32 +25,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.HOST }}" >> ~/.ssh/known_hosts
 
-      # ── 3. Push .env to server ────────────────────────────────────────────
-      #    Written via SSH stdin — secret values never appear in shell history.
-      - name: Push .env file to server
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-              -o StrictHostKeyChecking=no \
-              "${{ secrets.USERNAME }}@${{ secrets.HOST }}" \
-              'cat > /home/${{ secrets.USERNAME }}/luvira-guardian/.env' << 'ENVEOF'
-          AUTH0_DOMAIN=${{ secrets.AUTH0_DOMAIN }}
-          AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}
-          AUTH0_CLIENT_ID=${{ secrets.AUTH0_CLIENT_ID }}
-          AUTH0_CLIENT_SECRET=${{ secrets.AUTH0_CLIENT_SECRET }}
-          AUTH0_ISSUER=${{ secrets.AUTH0_ISSUER }}
-          AUTH0_MGMT_API_AUDIENCE=${{ secrets.AUTH0_MGMT_API_AUDIENCE }}
-          AUTH0_TV_CLIENT_ID=${{ secrets.AUTH0_TV_CLIENT_ID }}
-          AUTH0_TV_CLIENT_SECRET=${{ secrets.AUTH0_TV_CLIENT_SECRET }}
-          APP_ENV=${{ secrets.APP_ENV }}
-          APP_BASE_URL=${{ secrets.APP_BASE_URL }}
-          FRONTEND_BASE_URL=${{ secrets.FRONTEND_BASE_URL }}
-          LOG_LEVEL=${{ secrets.LOG_LEVEL }}
-          GITLAB_BASE_URL=${{ secrets.GITLAB_BASE_URL }}
-          SLACK_API_BASE_URL=${{ secrets.SLACK_API_BASE_URL }}
-          GOOGLE_API_BASE_URL=${{ secrets.GOOGLE_API_BASE_URL }}
-          ENVEOF
-
-      # ── 4. Deploy ─────────────────────────────────────────────────────────
+      # ── 3. Deploy ─────────────────────────────────────────────────────────
       - name: Deploy application
         run: |
           ssh -i ~/.ssh/deploy_key \

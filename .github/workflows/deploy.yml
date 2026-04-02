@@ -52,7 +52,7 @@ jobs:
             docker run -d \
               --name "$CONTAINER" \
               --restart unless-stopped \
-              -p 8000:8000 \
+              -p 8001:8000 \
               --env-file "$APP_DIR/.env" \
               "$IMAGE"
 
@@ -69,4 +69,4 @@ jobs:
         run: |
           sleep 8
           curl --fail --silent --show-error \
-            "http://${{ secrets.HOST }}:8000/health"
+            "http://${{ secrets.HOST }}:8001/health"

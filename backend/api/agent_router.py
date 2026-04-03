@@ -50,7 +50,7 @@ def _resolve_defaults(body: AgentRequest):
     return (
         body.gitlab_project_id or settings.demo_default_gitlab_project_id,
         body.gitlab_issue_iid or settings.demo_default_gitlab_issue_iid,
-        body.slack_channel or settings.demo_default_slack_channel,
+        body.linkedin_post or settings.demo_default_linkedin_post,
         body.calendar_id or settings.demo_default_calendar_id,
     )
 
@@ -65,13 +65,13 @@ async def preflight(
     user_id: str = Depends(get_user_id),
     token_payload: Dict[str, Any] = Depends(get_current_user),
 ) -> PreflightResponse:
-    gitlab_project_id, gitlab_issue_iid, slack_channel, calendar_id = _resolve_defaults(body)
+    gitlab_project_id, gitlab_issue_iid, linkedin_post, calendar_id = _resolve_defaults(body)
 
     plan = plan_workflow(
         prompt=body.prompt,
         gitlab_project_id=gitlab_project_id,
         gitlab_issue_iid=gitlab_issue_iid,
-        slack_channel=slack_channel,
+        linkedin_post=linkedin_post,
         calendar_id=calendar_id,
     )
 
@@ -120,14 +120,14 @@ async def execute(
     token_payload: Dict[str, Any] = Depends(get_current_user),
     user_token: str = Depends(get_raw_token),
 ) -> PermissionContract | ExecutionResult | Dict:
-    gitlab_project_id, gitlab_issue_iid, slack_channel, calendar_id = _resolve_defaults(body)
+    gitlab_project_id, gitlab_issue_iid, linkedin_post, calendar_id = _resolve_defaults(body)
 
     # ── Plan (Reason) ─────────────────────────────────────────────────────────
     plan = plan_workflow(
         prompt=body.prompt,
         gitlab_project_id=gitlab_project_id,
         gitlab_issue_iid=gitlab_issue_iid,
-        slack_channel=slack_channel,
+        linkedin_post=linkedin_post,
         calendar_id=calendar_id,
         workflow_id=body.workflow_id,
     )
@@ -173,7 +173,7 @@ async def execute(
         steps=step_details,
         delegated_scopes=DelegatedScopes(
             gitlab=raw_scopes["gitlab"],
-            slack=raw_scopes["slack"],
+            linkedin=raw_scopes["linkedin"],
             google_calendar=raw_scopes["google_calendar"],
         ),
         high_risk=plan.high_risk,
@@ -196,8 +196,8 @@ async def execute(
                 missing.append("gitlab_project_id")
             if not gitlab_issue_iid:
                 missing.append("gitlab_issue_iid")
-        if step == WorkflowStep.send_slack_notification and not slack_channel:
-            missing.append("slack_channel")
+        if step == WorkflowStep.post_linkedin_update and not linkedin_post:
+            missing.append("linkedin_post")
 
     if missing:
         raise HTTPException(

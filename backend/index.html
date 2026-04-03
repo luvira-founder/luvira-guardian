@@ -79,7 +79,7 @@
         <div style="margin-top:12px; border-top:1px solid #334155; padding-top:12px;">
           <label>Connect Accounts via Backend (Token Vault)</label>
           <button onclick="connectAccount('gitlab', ['read_api'])">Connect GitLab</button>
-          <button onclick="connectAccount('sign-in-with-slack', ['chat:write'])">Connect Slack</button>
+          <button onclick="connectAccount('linkedin', ['w_member_social'])">Connect LinkedIn</button>
           <button onclick="connectAccount('google-oauth2', ['https://www.googleapis.com/auth/calendar.events'])">Connect Google</button>
         </div>
       </div>
@@ -93,7 +93,7 @@
         <div class="grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom:12px;">
           <div><label>GitLab Project ID</label><input id="gitlab_project_id" placeholder="e.g. 12345"></div>
           <div><label>GitLab Issue IID</label><input id="gitlab_issue_iid" placeholder="e.g. 1"></div>
-          <div><label>Slack Channel</label><input id="slack_channel" placeholder="e.g. #incidents"></div>
+          <div><label>LinkedIn Post Text (optional override)</label><input id="linkedin_post" placeholder="e.g. Incident resolved"></div>
           <div><label>Calendar ID</label><input id="calendar_id" value="primary"></div>
         </div>
 
@@ -109,7 +109,7 @@
           <label>Approved Steps (uncheck to skip optional steps):</label>
           <div class="step-check"><input type="checkbox" id="step_retrieve_gitlab_issue" checked><label>retrieve_gitlab_issue (required)</label></div>
           <div class="step-check"><input type="checkbox" id="step_generate_incident_summary" checked><label>generate_incident_summary (required)</label></div>
-          <div class="step-check"><input type="checkbox" id="step_send_slack_notification" checked><label>send_slack_notification (required)</label></div>
+          <div class="step-check"><input type="checkbox" id="step_post_linkedin_update" checked><label>post_linkedin_update (required)</label></div>
           <div class="step-check"><input type="checkbox" id="step_schedule_calendar_meeting" checked><label>schedule_calendar_meeting (optional)</label></div>
         </div>
       </div>
@@ -136,7 +136,7 @@
     const AUTH0_DOMAIN = 'dev-cyv7t4gwdsj7r2mt.us.auth0.com';
     const AUTH0_CLIENT_ID = 'bQHGupS3oXe1CcVMoF5R226phtgSNJU0';
     const AUTH0_AUDIENCE = 'https://api.myluvira.com';
-    const API_BASE = 'http://127.0.0.1:8001';
+    const API_BASE = 'http://157.245.14.143:8001';
 
     let auth0Client = null;
     let accessToken = null;
@@ -341,7 +341,7 @@
         prompt: document.getElementById('prompt').value,
         gitlab_project_id: document.getElementById('gitlab_project_id').value || null,
         gitlab_issue_iid: document.getElementById('gitlab_issue_iid').value || null,
-        slack_channel: document.getElementById('slack_channel').value || null,
+        linkedin_post: document.getElementById('linkedin_post').value || null,
         calendar_id: document.getElementById('calendar_id').value || null,
       };
     }
@@ -350,7 +350,7 @@
       const steps = [];
       if (document.getElementById('step_retrieve_gitlab_issue').checked) steps.push('retrieve_gitlab_issue');
       if (document.getElementById('step_generate_incident_summary').checked) steps.push('generate_incident_summary');
-      if (document.getElementById('step_send_slack_notification').checked) steps.push('send_slack_notification');
+      if (document.getElementById('step_post_linkedin_update').checked) steps.push('post_linkedin_update');
       if (document.getElementById('step_schedule_calendar_meeting').checked) steps.push('schedule_calendar_meeting');
       return steps;
     }
@@ -382,7 +382,6 @@
 
     async function testTokenExchange() {
       showResult({ status: '...', data: 'Testing federated token exchange for GitLab...' });
-      // Call a new backend endpoint that does the exchange using the user's token
       const result = await apiCall('POST', '/services/test-exchange', {
         connection: 'gitlab',
         scopes: ['read_api'],

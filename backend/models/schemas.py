@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 class WorkflowStep(str, Enum):
     retrieve_gitlab_issue = "retrieve_gitlab_issue"
     generate_incident_summary = "generate_incident_summary"
-    send_slack_notification = "send_slack_notification"
+    post_linkedin_update = "post_linkedin_update"
     schedule_calendar_meeting = "schedule_calendar_meeting"
 
 
@@ -68,13 +68,13 @@ class AgentRequest(BaseModel):
     # Optional overrides for demo
     gitlab_project_id: Optional[str] = None
     gitlab_issue_iid: Optional[str] = None
-    slack_channel: Optional[str] = None
+    linkedin_post: Optional[str] = None
     calendar_id: Optional[str] = None
 
 
 class DelegatedScopes(BaseModel):
     gitlab: List[str] = Field(default_factory=list)
-    slack: List[str] = Field(default_factory=list)
+    linkedin: List[str] = Field(default_factory=list)
     google_calendar: List[str] = Field(default_factory=list)
 
 
@@ -111,7 +111,7 @@ class WorkflowPlan(BaseModel):
     # Resolved context
     gitlab_project_id: str = ""
     gitlab_issue_iid: str = ""
-    slack_channel: str = ""
+    linkedin_post: str = ""
     calendar_id: str = "primary"
 
 
@@ -163,7 +163,7 @@ class ServicesStatusResponse(BaseModel):
 # ─── Reconnect ────────────────────────────────────────────────────────────────
 
 class ReconnectRequest(BaseModel):
-    service: str = Field(..., description="Service to reconnect: gitlab | slack | google-calendar")
+    service: str = Field(..., description="Service to reconnect: gitlab | linkedin | google-calendar")
 
 
 class ReconnectResponse(BaseModel):

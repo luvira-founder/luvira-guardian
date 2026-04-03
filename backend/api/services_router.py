@@ -37,10 +37,10 @@ _SUPPORTED_SERVICES: List[Dict] = [
         "required_scopes": ["read_api", "write_api"],
     },
     {
-        "name": "slack",
-        "display": "Slack",
-        "provider": "sign-in-with-slack",
-        "required_scopes": ["chat:write"],
+        "name": "linkedin",
+        "display": "LinkedIn",
+        "provider": "linkedin",
+        "required_scopes": ["w_member_social"],
     },
     {
         "name": "google-calendar",
@@ -123,7 +123,7 @@ async def reconnect_service(
 
     connection_map: Dict[str, str] = {
         "gitlab": "gitlab",
-        "slack": "sign-in-with-slack",
+        "linkedin": "linkedin",
         "google-calendar": "google-oauth2",
     }
 
@@ -134,7 +134,7 @@ async def reconnect_service(
             detail=ErrorResponse(
                 status="error",
                 error_code=ErrorCode.validation_error,
-                message=f"Unknown service '{body.service}'. Valid values: gitlab, slack, google-calendar.",
+                message=f"Unknown service '{body.service}'. Valid values: gitlab, linkedin, google-calendar.",
             ).model_dump(),
         )
 
@@ -156,7 +156,7 @@ async def reconnect_service(
 
 
 class ExchangeRequest(BaseModel):
-    connection: str = Field(..., description="Auth0 connection name: gitlab | sign-in-with-slack | google-oauth2")
+    connection: str = Field(..., description="Auth0 connection name: gitlab | linkedin | google-oauth2")
     scopes: List[str] = Field(default_factory=list, description="Provider scopes to request")
 
 

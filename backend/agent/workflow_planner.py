@@ -61,7 +61,7 @@ STEP_REQUIRED_SCOPES: Dict[WorkflowStep, List[str]] = {
 # Auth0 connection name for each logical service
 _SERVICE_PROVIDER_MAP: Dict[str, str] = {
     "gitlab": "gitlab",
-    "slack": "slack-custom",
+    "slack": "sign-in-with-slack",
     "google-calendar": "google-oauth2",
 }
 

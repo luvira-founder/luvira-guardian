@@ -39,7 +39,7 @@ _SUPPORTED_SERVICES: List[Dict] = [
     {
         "name": "slack",
         "display": "Slack",
-        "provider": "slack-custom",
+        "provider": "sign-in-with-slack",
         "required_scopes": ["chat:write"],
     },
     {
@@ -123,7 +123,7 @@ async def reconnect_service(
 
     connection_map: Dict[str, str] = {
         "gitlab": "gitlab",
-        "slack": "slack-custom",
+        "slack": "sign-in-with-slack",
         "google-calendar": "google-oauth2",
     }
 
@@ -156,7 +156,7 @@ async def reconnect_service(
 
 
 class ExchangeRequest(BaseModel):
-    connection: str = Field(..., description="Auth0 connection name: gitlab | slack-custom | google-oauth2")
+    connection: str = Field(..., description="Auth0 connection name: gitlab | sign-in-with-slack | google-oauth2")
     scopes: List[str] = Field(default_factory=list, description="Provider scopes to request")
 
 
@@ -234,7 +234,7 @@ async def connect_service(
     or we forward the user's access token directly.
     """
     settings = get_settings()
-    redirect_uri = f"{settings.frontend_base_url}/"
+    redirect_uri = settings.frontend_base_url
 
     # The frontend sends a My Account API token in a custom header
     ma_token = body.ma_token
@@ -272,7 +272,7 @@ async def connect_complete(
     Completes the Connected Accounts flow by exchanging the connect_code.
     """
     settings = get_settings()
-    redirect_uri = f"{settings.frontend_base_url}/"
+    redirect_uri = settings.frontend_base_url
 
     ma_token = body.ma_token
 

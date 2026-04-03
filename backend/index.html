@@ -79,7 +79,7 @@
         <div style="margin-top:12px; border-top:1px solid #334155; padding-top:12px;">
           <label>Connect Accounts via Backend (Token Vault)</label>
           <button onclick="connectAccount('gitlab', ['read_api'])">Connect GitLab</button>
-          <button onclick="connectSlackDirect()">Connect Slack</button>
+          <button onclick="connectAccount('sign-in-with-slack', ['chat:write'])">Connect Slack</button>
           <button onclick="connectAccount('google-oauth2', ['https://www.googleapis.com/auth/calendar.events'])">Connect Google</button>
         </div>
       </div>
@@ -136,7 +136,7 @@
     const AUTH0_DOMAIN = 'dev-cyv7t4gwdsj7r2mt.us.auth0.com';
     const AUTH0_CLIENT_ID = 'bQHGupS3oXe1CcVMoF5R226phtgSNJU0';
     const AUTH0_AUDIENCE = 'https://api.myluvira.com';
-    const API_BASE = 'http://127.0.0.1:8000';
+    const API_BASE = 'http://127.0.0.1:8001';
 
     let auth0Client = null;
     let accessToken = null;
@@ -243,7 +243,9 @@
     // ── Connected Accounts (via backend) ───────────────────────────────────
 
     async function getMyAccountToken() {
-      // Use MRRT: exchange the refresh token for a My Account API access token
+      // Get a My Account API token via loginWithPopup for the /me/ audience.
+      // The SPA SDK cannot silently exchange tokens for a different audience than
+      // the one used at login, so we open a popup to get a fresh grant.
       try {
         const token = await auth0Client.getTokenSilently({
           authorizationParams: {
@@ -251,74 +253,30 @@
             scope: 'create:me:connected_accounts read:me:connected_accounts delete:me:connected_accounts',
           },
         });
-        console.log('My Account token obtained via MRRT');
+        console.log('My Account token obtained via getTokenSilently');
         return token;
       } catch (e) {
-        console.error('Failed to get My Account token via SDK:', e);
-        // The SDK may not find the refresh token in its cache key lookup.
-        // Manually extract it from localStorage and exchange directly.
-        console.log('Trying manual refresh token exchange...');
+        console.log('Silent failed, trying popup for My Account audience...', e.message);
         try {
-          let refreshToken = null;
-          for (const key of Object.keys(localStorage)) {
-            if (key.includes(AUTH0_CLIENT_ID)) {
-              try {
-                const val = JSON.parse(localStorage.getItem(key));
-                if (val?.body?.refresh_token) {
-                  refreshToken = val.body.refresh_token;
-                  break;
-                }
-              } catch (_) {}
-            }
-          }
-          if (!refreshToken) throw new Error('No refresh token found in cache');
-
-          const res = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              grant_type: 'refresh_token',
-              client_id: AUTH0_CLIENT_ID,
-              refresh_token: refreshToken,
+          await auth0Client.loginWithPopup({
+            authorizationParams: {
+              audience: `https://${AUTH0_DOMAIN}/me/`,
+              scope: 'openid create:me:connected_accounts read:me:connected_accounts delete:me:connected_accounts offline_access',
+            },
+          });
+          const token = await auth0Client.getTokenSilently({
+            authorizationParams: {
               audience: `https://${AUTH0_DOMAIN}/me/`,
               scope: 'create:me:connected_accounts read:me:connected_accounts delete:me:connected_accounts',
-            }),
+            },
           });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error_description || data.error);
-
-          // Update the refresh token in cache (rotation gives us a new one)
-          if (data.refresh_token) {
-            for (const key of Object.keys(localStorage)) {
-              if (key.includes(AUTH0_CLIENT_ID) && key.includes(AUTH0_AUDIENCE)) {
-                try {
-                  const val = JSON.parse(localStorage.getItem(key));
-                  if (val?.body?.refresh_token) {
-                    val.body.refresh_token = data.refresh_token;
-                    localStorage.setItem(key, JSON.stringify(val));
-                  }
-                } catch (_) {}
-              }
-            }
-          }
-
-          console.log('My Account token obtained via manual MRRT');
-          return data.access_token;
-        } catch (manualErr) {
-          console.error('Manual MRRT also failed:', manualErr);
-          alert('Failed to get My Account API token: ' + manualErr.message);
+          console.log('My Account token obtained via popup');
+          return token;
+        } catch (popupErr) {
+          console.error('Popup also failed:', popupErr);
+          alert('Failed to get My Account API token: ' + popupErr.message);
           return null;
         }
-      }
-    }
-
-    async function connectSlackDirect() {
-      // Direct Slack OAuth — bypasses Auth0 Connected Accounts
-      const result = await apiCall('GET', '/services/slack/authorize');
-      if (result.data.authorize_url) {
-        window.location.href = result.data.authorize_url;
-      } else {
-        showResult(result);
       }
     }
 

@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 # These must match the exact connection names configured in your Auth0 tenant.
 _SERVICE_CONNECTION_MAP: Dict[str, str] = {
     "gitlab": "gitlab",
-    "slack": "slack-custom",
+    "slack": "sign-in-with-slack",
     "google-calendar": "google-oauth2",
 }
 

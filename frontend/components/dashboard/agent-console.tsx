@@ -5,7 +5,7 @@ import React, { useState } from "react";
 export default function AgentConsole() {
   const [gitlabProjectId, setGitlabProjectId] = useState("");
   const [gitlabIssueIid, setGitlabIssueIid] = useState("");
-  const [slackChannel, setSlackChannel] = useState("");
+  const [linkedinHandle, setLinkedinHandle] = useState("");
   const [calendarId, setCalendarId] = useState("");
   const [steps, setSteps] = useState<ApprovedStep[]>(INITIAL_STEPS);
   const [prompt, setPrompt] = useState(
@@ -50,10 +50,10 @@ export default function AgentConsole() {
               placeholder: "1",
             },
             {
-              label: "Slack Channel",
-              value: slackChannel,
-              set: setSlackChannel,
-              placeholder: "e.g. #incidents",
+              label: "LinkedIn Handle",
+              value: linkedinHandle,
+              set: setLinkedinHandle,
+              placeholder: "e.g. @company",
             },
             {
               label: "Calendar ID",

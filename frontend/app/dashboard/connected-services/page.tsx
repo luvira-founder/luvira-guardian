@@ -24,12 +24,12 @@ const INITIAL_SERVICES: Service[] = [
     logo: "/gitlab-logo.svg",
   },
   {
-    id: "slack",
-    name: "Slack",
-    description: "Team notifications and incident alerts",
+    id: "linkedin",
+    name: "LinkedIn",
+    description: "Professional network notifications and alerts",
     status: "connected",
-    scopes: ["chat:write"],
-    logo: "/slack-logo.svg",
+    scopes: ["w_member_social"],
+    logo: "/linkedin-logo.svg",
   },
   {
     id: "google-calendar",
@@ -59,8 +59,8 @@ function ServiceCard({
           <Image
             src={service.logo}
             alt={`${service.name} logo`}
-            width={service.id === "slack" ? 40 : 30}
-            height={service.id === "slack" ? 40 : 30}
+            width={service.id === "linkedin" ? 40 : 30}
+            height={service.id === "linkedin" ? 40 : 30}
           />
           <div>
             <h3 className="text-[15px] font-semibold text-gray-900">

@@ -1,13 +1,13 @@
 import ky from "ky";
+import { getAccessToken } from "@auth0/nextjs-auth0/client";
 import { BASE_URL } from "./BASE_URL";
-
-const token = "";
 
 export const kyInstance = ky.create({
   prefixUrl: BASE_URL,
   hooks: {
     beforeRequest: [
-      (request) => {
+      async (request) => {
+        const token = await getAccessToken();
         request.headers.set("Authorization", `Bearer ${token}`);
       },
     ],

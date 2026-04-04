@@ -3,10 +3,14 @@ import Image from "next/image";
 
 export default function ServiceCard({
   service,
-  onToggle,
+  onConnect,
+  onDisconnect,
+  connecting,
 }: {
   service: Service;
-  onToggle: (id: string) => void;
+  onConnect: (id: string) => void;
+  onDisconnect: (id: string) => void;
+  connecting?: boolean;
 }) {
   const isConnected = service.status === "connected";
 
@@ -23,10 +27,10 @@ export default function ServiceCard({
           {service.name}
         </p>
       </div>
-      <div className="flex flex-1 flex-col items-center">
-        {service.scope && (
+      <div className="flex flex-1 flex-col items-center space-y-2">
+        {service.scopes.length > 0 && (
           <p className="text-[10px] text-gray-400 text-center leading-snug break-all">
-            {service.scope}
+            {service.scopes.join(", ")}
           </p>
         )}
         <span
@@ -40,14 +44,17 @@ export default function ServiceCard({
         </span>
       </div>
       <button
-        onClick={() => onToggle(service.id)}
-        className={`w-full py-1.5 rounded-sm text-[12px] font-medium transition-colors ${
+        onClick={() =>
+          isConnected ? onDisconnect(service.id) : onConnect(service.id)
+        }
+        disabled={connecting}
+        className={`w-full py-1.5 rounded-sm text-[12px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
           isConnected
             ? "border border-gray-300 text-gray-500 bg-white hover:bg-gray-50"
             : "bg-[#3bcaca] text-white hover:bg-[#2db8b8]"
         }`}
       >
-        {service.connectLabel}
+        {connecting ? "Connecting…" : service.connectLabel}
       </button>
     </div>
   );

@@ -4,7 +4,9 @@ export interface Service {
   id: string;
   name: string;
   status: ConnectionState;
+  connection: string;
   scope: string;
+  scopes: string[];
   logo: string;
   logoWidth: number;
   logoHeight: number;

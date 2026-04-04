@@ -10,6 +10,8 @@ import { INITIAL_SERVICES } from "@/lib/constants";
 import { formatDateTime } from "@/lib/helpers";
 import AgentConsole from "./agent-console";
 import { Button } from "../ui/button";
+import { disconnectService, checkServicesConnectionStatus } from "@/services/api";
+import { useServiceConnect } from "@/hooks/useServiceConnect";
 
 interface TestHarnessProps {
   user: User;
@@ -26,6 +28,8 @@ export default function TestHarness({
     formatDateTime(new Date()),
   );
   const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
+  const [connecting, setConnecting] = useState<Set<string>>(new Set());
+  const { connect } = useServiceConnect();
 
   const [copied, setCopied] = useState(false);
 
@@ -34,18 +38,65 @@ export default function TestHarness({
     return () => clearInterval(id);
   }, []);
 
-  function handleToggleService(id: string) {
+  const applyStatuses = (statuses: import("@/services/types").TServiceStatus[]) => {
     setServices((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? {
-              ...s,
-              status: s.status === "connected" ? "disconnected" : "connected",
-            }
-          : s,
-      ),
+      prev.map((s) => {
+        const match = statuses.find((st) => st.service === s.name);
+        if (!match) return s;
+        const scopes = match.granted_scopes.length > 0 ? match.granted_scopes : s.scopes;
+        return { ...s, status: match.state, scopes, scope: scopes.join(", ") };
+      }),
     );
-  }
+  };
+
+  const handleConnect = async (id: string) => {
+    setConnecting((prev) => new Set(prev).add(id));
+    try {
+      const service = services.find((s) => s.id === id);
+      if (!service) return;
+      await connect(service.connection as import("@/services/types").TConnection, service.scopes, applyStatuses);
+    } catch (error) {
+      console.error(`Failed to connect ${id}:`, error);
+    } finally {
+      setConnecting((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleDisconnect = async (id: string) => {
+    setConnecting((prev) => new Set(prev).add(id));
+    try {
+      await disconnectService(id);
+      setServices((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, status: "disconnected" } : s)),
+      );
+    } catch (error) {
+      console.error(`Failed to disconnect ${id}:`, error);
+    } finally {
+      setConnecting((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const [checkingServices, setCheckingServices] = useState(false);
+
+  const handleCheckServices = async () => {
+    setCheckingServices(true);
+    try {
+      const { services: statuses } = await checkServicesConnectionStatus();
+      applyStatuses(statuses);
+    } catch (error) {
+      console.error("Failed to check services:", error);
+    } finally {
+      setCheckingServices(false);
+    }
+  };
 
   async function handleCopyToken() {
     if (!accessToken) return;
@@ -173,12 +224,18 @@ export default function TestHarness({
                 <ServiceCard
                   key={service.id}
                   service={service}
-                  onToggle={handleToggleService}
+                  onConnect={handleConnect}
+                  onDisconnect={handleDisconnect}
+                  connecting={connecting.has(service.id)}
                 />
               ))}
             </div>
-            <button className="w-full py-3 bg-[#3bcaca] text-white text-[14px] font-semibold rounded-sm hover:bg-[#2db8b8] transition-colors">
-              Check Services
+            <button
+              onClick={handleCheckServices}
+              disabled={checkingServices}
+              className="w-full py-3 bg-[#3bcaca] text-white text-[14px] font-semibold rounded-sm hover:bg-[#2db8b8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {checkingServices ? "Checking…" : "Check Services"}
             </button>
           </div>
         </div>

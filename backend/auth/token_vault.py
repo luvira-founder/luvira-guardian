@@ -129,6 +129,11 @@ async def get_delegated_token(
         )
 
     if response.status_code == 401:
+        logger.error(
+            "Federated exchange 401: service=%s body=%s",
+            service,
+            response.text[:500],
+        )
         raise TokenVaultError(
             service=service,
             message="Federated token exchange authorization failed. Check client credentials.",
@@ -151,53 +156,85 @@ async def get_delegated_token(
 
     data = response.json()
     provider_token: str = data["access_token"]
+    logger.info(
+        "Federated exchange result: service=%s token_type=%s scope=%s issued_token_type=%s",
+        service,
+        data.get("token_type"),
+        data.get("scope"),
+        data.get("issued_token_type"),
+    )
     # provider_token is returned to the caller's stack frame only
     return provider_token
 
 
-async def get_provider_token_from_mgmt(user_id: str, provider: str) -> str:
+async def get_provider_token_from_tv(user_id: str, connection: str) -> str:
     """
-    Fetch a stored provider access token directly from the Auth0 Management API
-    GET /api/v2/users/{user_id} → identities[].access_token.
+    Fetch the stored provider access token directly from Auth0 Token Vault
+    via the Management API connected-accounts token endpoint:
+    POST /api/v2/users/{user_id}/connected-accounts/{account_id}/access-token
 
-    Requires "Store Tokens" to be enabled on the Auth0 social connection.
-    Falls back to this when the federated token exchange returns an Auth0 token
-    instead of the actual provider token.
+    This is the correct path when the federated exchange grant returns an
+    Auth0 token instead of the actual provider token.
     """
     settings = get_settings()
     mgmt_token = await _get_mgmt_api_token()
     headers = {"Authorization": f"Bearer {mgmt_token}"}
 
-    url = f"{settings.auth0_mgmt_base_url}/users/{user_id}"
+    # First, list connected accounts to find the account_id for this connection
+    list_url = f"{settings.auth0_mgmt_base_url}/users/{user_id}/connected-accounts"
     async with httpx.AsyncClient(timeout=10) as client:
-        response = await client.get(url, headers=headers)
+        list_resp = await client.get(list_url, headers=headers)
 
-    if response.status_code != 200:
-        logger.error(
-            "Failed to fetch user profile: status=%s body=%s",
-            response.status_code, response.text[:200],
-        )
+    if list_resp.status_code != 200:
         raise TokenVaultError(
-            service=provider,
-            message=f"Failed to fetch user profile from Auth0 Management API.",
+            service=connection,
+            message="Failed to list connected accounts from Token Vault.",
             error_code="connection_lost",
         )
 
-    data = response.json()
-    identities: list = data.get("identities", [])
+    data = list_resp.json()
+    accounts = data if isinstance(data, list) else data.get("connected_accounts", [])
 
-    for identity in identities:
-        if identity.get("provider") == provider:
-            access_token = identity.get("access_token")
-            if access_token:
-                logger.info("Retrieved %s token from Management API identities for user %s", provider, user_id)
-                return access_token
+    account_id = None
+    for account in accounts:
+        if account.get("connection") == connection or account.get("strategy") == connection:
+            account_id = account.get("id")
+            break
 
-    raise TokenVaultError(
-        service=provider,
-        message=f"No stored access token found for provider '{provider}'. Please reconnect.",
-        error_code="connection_lost",
-    )
+    if not account_id:
+        raise TokenVaultError(
+            service=connection,
+            message=f"No connected account found for '{connection}'. Please reconnect.",
+            error_code="connection_lost",
+        )
+
+    # Fetch the access token for this connected account
+    token_url = f"{settings.auth0_mgmt_base_url}/users/{user_id}/connected-accounts/{account_id}/access-token"
+    async with httpx.AsyncClient(timeout=10) as client:
+        token_resp = await client.post(token_url, headers=headers)
+
+    if token_resp.status_code != 200:
+        logger.error(
+            "Failed to fetch TV access token: connection=%s status=%s body=%s",
+            connection, token_resp.status_code, token_resp.text[:300],
+        )
+        raise TokenVaultError(
+            service=connection,
+            message=f"Failed to retrieve access token for '{connection}' from Token Vault.",
+            error_code="connection_lost",
+        )
+
+    token_data = token_resp.json()
+    access_token = token_data.get("access_token")
+    if not access_token:
+        raise TokenVaultError(
+            service=connection,
+            message=f"Token Vault returned no access_token for '{connection}'.",
+            error_code="connection_lost",
+        )
+
+    logger.info("Retrieved %s token from Token Vault for user %s", connection, user_id)
+    return access_token
 
 
 async def get_connected_services(user_id: str) -> List[Dict[str, Any]]:

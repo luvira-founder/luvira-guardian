@@ -79,8 +79,11 @@
         <div style="margin-top:12px; border-top:1px solid #334155; padding-top:12px;">
           <label>Connect Accounts via Backend (Token Vault)</label>
           <button onclick="connectAccount('gitlab', ['read_api'])">Connect GitLab</button>
+          <button class="danger" onclick="disconnectAccount('gitlab')">Disconnect GitLab</button>
           <button onclick="connectAccount('sign-in-with-slack', ['chat:write'])">Connect Slack</button>
+          <button class="danger" onclick="disconnectAccount('sign-in-with-slack')">Disconnect Slack</button>
           <button onclick="connectAccount('google-oauth2', ['https://www.googleapis.com/auth/calendar.events'])">Connect Google</button>
+          <button class="danger" onclick="disconnectAccount('google-oauth2')">Disconnect Google</button>
         </div>
       </div>
 
@@ -136,7 +139,7 @@
     const AUTH0_DOMAIN = 'dev-cyv7t4gwdsj7r2mt.us.auth0.com';
     const AUTH0_CLIENT_ID = 'bQHGupS3oXe1CcVMoF5R226phtgSNJU0';
     const AUTH0_AUDIENCE = 'https://api.myluvira.com';
-    const API_BASE = 'http://157.245.14.143:8001';
+    const API_BASE = 'http://localhost:8001';
 
     let auth0Client = null;
     let accessToken = null;
@@ -308,6 +311,18 @@
       } else {
         showResult(result);
       }
+    }
+
+    async function disconnectAccount(connection) {
+      const maToken = await getMyAccountToken();
+      if (!maToken) return;
+      showResult({ status: '...', data: `Disconnecting ${connection}...` });
+      const result = await apiCall('POST', '/services/disconnect', {
+        connection: connection,
+        ma_token: maToken,
+      });
+      showResult(result);
+      if (result.status < 300) await checkServices();
     }
 
     // ── Backend API Helpers ────────────────────────────────────────────────

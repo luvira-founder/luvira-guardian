@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from auth.dependencies import get_raw_token, get_user_id
-from auth.token_vault import TokenVaultError, get_connected_services
+from auth.token_vault import TokenVaultError, get_connected_services, _get_mgmt_api_token
 from config import get_settings
 from models.schemas import (
     ConnectionState,
@@ -153,6 +153,60 @@ async def reconnect_service(
 
 
 # ─── Connected Accounts (Token Vault) ────────────────────────────────────
+
+
+class DisconnectRequest(BaseModel):
+    connection: str = Field(..., description="Auth0 connection name: gitlab | google-oauth2 | sign-in-with-slack")
+    ma_token: str = Field(..., description="My Account API access token from the frontend")
+
+
+@router.post(
+    "/disconnect",
+    summary="Disconnect a connected account from Token Vault",
+)
+async def disconnect_service(
+    body: DisconnectRequest,
+    user_id: str = Depends(get_user_id),
+) -> Dict[str, Any]:
+    """
+    Deletes a connected account from Auth0 Token Vault via the My Account API.
+    The user must reconnect afterwards to get a fresh token.
+    """
+    settings = get_settings()
+    ma_token = body.ma_token
+
+    # List connected accounts via Management API to get the cac_ ID
+    mgmt_token = await _get_mgmt_api_token()
+    list_url = f"{settings.auth0_mgmt_base_url}/users/{user_id}/connected-accounts"
+    async with httpx.AsyncClient(timeout=10) as client:
+        list_resp = await client.get(list_url, headers={"Authorization": f"Bearer {mgmt_token}"})
+
+    if list_resp.status_code != 200:
+        raise HTTPException(status_code=list_resp.status_code, detail={"error": "list_failed", "message": list_resp.text[:300]})
+
+    data = list_resp.json()
+    accounts = data if isinstance(data, list) else data.get("connected_accounts", [])
+
+    account_id = None
+    for account in accounts:
+        if account.get("connection") == body.connection:
+            account_id = account.get("id")
+            break
+
+    if not account_id:
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": f"No connected account for '{body.connection}'"})
+
+    # Delete via My Account API — requires /accounts/ segment
+    delete_url = f"https://{settings.auth0_domain}/me/v1/connected-accounts/accounts/{account_id}"
+    async with httpx.AsyncClient(timeout=10) as client:
+        del_resp = await client.delete(delete_url, headers={"Authorization": f"Bearer {ma_token}"})
+
+    if del_resp.status_code not in (200, 204):
+        logger.error("Delete failed: status=%s body=%s", del_resp.status_code, del_resp.text[:500])
+        raise HTTPException(status_code=del_resp.status_code, detail={"error": "delete_failed", "message": del_resp.text[:300]})
+
+    logger.info("Disconnected %s for user %s", body.connection, user_id)
+    return {"status": "disconnected", "connection": body.connection}
 
 
 class ExchangeRequest(BaseModel):

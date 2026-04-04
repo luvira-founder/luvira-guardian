@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from agent.workflow_planner import STEP_REQUIRED_MAP
-from auth.token_vault import TokenVaultError, get_delegated_token, get_provider_token_from_mgmt
+from auth.token_vault import TokenVaultError, get_delegated_token, get_provider_token_from_tv
 from integrations import calendar_service, gitlab_service, slack_service
 from integrations.calendar_service import CalendarError
 from integrations.gitlab_service import GitLabError
@@ -276,7 +276,8 @@ async def _step_schedule_calendar(
     summary = context.get("incident_summary", "Follow-up meeting for incident response.")
     event_summary = f"Incident Follow-Up: {title}"
 
-    token = await get_provider_token_from_mgmt(user_id, "google-oauth2")
+    cal_scope = "https://www.googleapis.com/auth/calendar.events"
+    token = await get_delegated_token(user_token, "google-calendar", [cal_scope])
     event = await calendar_service.create_event(
         calendar_id=plan.calendar_id,
         summary=event_summary,

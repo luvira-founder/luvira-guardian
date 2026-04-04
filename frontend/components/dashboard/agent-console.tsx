@@ -101,7 +101,7 @@ export default function AgentConsole() {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-5 flex flex-col gap-4">
+    <div className="bg-white border border-gray-200 rounded-md p-5 flex flex-col gap-4 max-[450px]:px-3">
       <h2 className="text-[15px] font-bold text-gray-900">Agent Console</h2>
 
       {/* Prompt */}
@@ -116,7 +116,7 @@ export default function AgentConsole() {
       </div>
 
       {/* Input fields */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {(
           [
             {
@@ -295,7 +295,7 @@ export default function AgentConsole() {
       </div>
 
       {/* Response + Audit Log panels */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Response */}
         <div className="bg-white border border-gray-200 rounded-md p-4 flex flex-col gap-3">
           <h3 className="text-[14px] font-semibold text-gray-800">Response</h3>

@@ -158,8 +158,11 @@ export default function TestHarness({
             height={28}
             className="md:hidden"
           />
-          <span className="text-[15px] font-semibold text-gray-800">
+          <span className="hidden text-[15px] font-semibold text-gray-800 sm:inline">
             Luvira Guardian Test Harness
+          </span>
+          <span className="text-[15px] font-semibold text-gray-800 sm:hidden">
+            Luvira Guardian
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -246,9 +249,9 @@ export default function TestHarness({
         </div>
 
         {/* JWT Claims + Connected Services */}
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-4 xl:flex-row">
           {/* JWT Claims */}
-          <div className="w-[40%] shrink-0 bg-white border border-gray-200 rounded-md p-5 flex flex-col gap-3">
+          <div className="w-full shrink-0 bg-white border border-gray-200 rounded-md p-5 flex flex-col gap-3 xl:w-[40%]">
             <h2 className="text-[15px] font-semibold text-gray-800">
               JWT Claims
             </h2>
@@ -267,7 +270,7 @@ export default function TestHarness({
             <h2 className="text-[15px] font-semibold text-gray-800">
               Connected Services
             </h2>
-            <div className="flex gap-3 flex-1">
+            <div className="flex gap-3 flex-1 max-[600px]:grid max-[600]:grid-cols-2 max-[450px]:grid-cols-1">
               {services.map((service) => (
                 <ServiceCard
                   key={service.id}

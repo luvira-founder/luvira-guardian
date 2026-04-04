@@ -28,10 +28,10 @@ from typing import Any, Dict, List, Optional
 
 from agent.workflow_planner import STEP_REQUIRED_MAP
 from auth.token_vault import TokenVaultError, get_delegated_token
-from integrations import calendar_service, gitlab_service, linkedin_service
+from integrations import calendar_service, gitlab_service, slack_service
 from integrations.calendar_service import CalendarError
 from integrations.gitlab_service import GitLabError
-from integrations.linkedin_service import LinkedInError
+from integrations.slack_service import SlackError
 from audit_logging.audit_logger import log_action
 from models.schemas import (
     ActionStatus,
@@ -144,7 +144,7 @@ async def _execute_step(
     handlers = {
         WorkflowStep.retrieve_gitlab_issue: _step_retrieve_gitlab_issue,
         WorkflowStep.generate_incident_summary: _step_generate_summary,
-        WorkflowStep.post_linkedin_update: _step_post_linkedin,
+        WorkflowStep.send_slack_notification: _step_send_slack,
         WorkflowStep.schedule_calendar_meeting: _step_schedule_calendar,
     }
     handler = handlers.get(step)
@@ -167,7 +167,7 @@ async def _execute_step(
             status=ActionStatus.failed,
             detail=f"Token exchange error: {exc.message}",
         )
-    except (GitLabError, LinkedInError, CalendarError) as exc:
+    except (GitLabError, SlackError, CalendarError) as exc:
         return _build_entry(
             user_id=user_id,
             action=step.value,
@@ -248,24 +248,24 @@ async def _step_generate_summary(
     )
 
 
-async def _step_post_linkedin(
+async def _step_send_slack(
     plan: WorkflowPlan, user_id: str, user_token: str, context: Dict[str, Any]
 ) -> AuditEntry:
     summary = context.get("incident_summary", "Incident response workflow triggered.")
     title = context.get("incident_title", "Incident")
 
-    message = f"Incident Alert: {title}\n\n{summary}"
+    message = f":rotating_light: *Incident Alert: {title}*\n\n{summary}"
 
-    token = await get_delegated_token(user_token, "linkedin", ["w_member_social"])
-    await linkedin_service.post_update(message, token)
+    token = await get_delegated_token(user_token, "slack", ["chat:write"])
+    await slack_service.send_message(plan.slack_channel, message, token)
     # token falls out of scope — never stored
 
     return _build_entry(
         user_id=user_id,
-        action="post_linkedin_update",
-        service="linkedin",
+        action="send_slack_notification",
+        service="slack",
         status=ActionStatus.success,
-        detail=f"LinkedIn update posted for: {title}",
+        detail=f"Notification sent to channel: {plan.slack_channel}",
     )
 
 

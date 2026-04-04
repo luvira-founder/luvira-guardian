@@ -40,28 +40,28 @@ from models.schemas import (
 STEP_REQUIRED_MAP: Dict[WorkflowStep, bool] = {
     WorkflowStep.retrieve_gitlab_issue: True,
     WorkflowStep.generate_incident_summary: True,
-    WorkflowStep.post_linkedin_update: True,
+    WorkflowStep.send_slack_notification: True,
     WorkflowStep.schedule_calendar_meeting: False,
 }
 
 STEP_SERVICE_MAP: Dict[WorkflowStep, Optional[str]] = {
     WorkflowStep.retrieve_gitlab_issue: "gitlab",
     WorkflowStep.generate_incident_summary: None,  # local computation, no service
-    WorkflowStep.post_linkedin_update: "linkedin",
+    WorkflowStep.send_slack_notification: "slack",
     WorkflowStep.schedule_calendar_meeting: "google-calendar",
 }
 
 STEP_REQUIRED_SCOPES: Dict[WorkflowStep, List[str]] = {
     WorkflowStep.retrieve_gitlab_issue: ["read_api"],
     WorkflowStep.generate_incident_summary: [],
-    WorkflowStep.post_linkedin_update: ["w_member_social"],
+    WorkflowStep.send_slack_notification: ["chat:write"],
     WorkflowStep.schedule_calendar_meeting: ["https://www.googleapis.com/auth/calendar.events"],
 }
 
 # Auth0 connection name for each logical service
 _SERVICE_PROVIDER_MAP: Dict[str, str] = {
     "gitlab": "gitlab",
-    "linkedin": "linkedin",
+    "slack": "sign-in-with-slack",
     "google-calendar": "google-oauth2",
 }
 
@@ -79,8 +79,8 @@ _STEP_KEYWORDS: List[tuple[WorkflowStep, List[str]]] = [
         ["summary", "summarize", "describe", "analyze", "report"],
     ),
     (
-        WorkflowStep.post_linkedin_update,
-        ["notify", "notification", "linkedin", "team", "alert", "post", "share", "update", "announce"],
+        WorkflowStep.send_slack_notification,
+        ["notify", "notification", "slack", "team", "alert", "message", "inform", "post"],
     ),
     (
         WorkflowStep.schedule_calendar_meeting,
@@ -107,7 +107,7 @@ def plan_workflow(
     prompt: str,
     gitlab_project_id: str = "",
     gitlab_issue_iid: str = "",
-    linkedin_post: str = "",
+    slack_channel: str = "",
     calendar_id: str = "primary",
     workflow_id: Optional[str] = None,
 ) -> WorkflowPlan:
@@ -137,7 +137,7 @@ def plan_workflow(
             high_risk_keywords=matched_risk,
             gitlab_project_id=gitlab_project_id,
             gitlab_issue_iid=gitlab_issue_iid,
-            linkedin_post=linkedin_post,
+            slack_channel=slack_channel,
             calendar_id=calendar_id,
         )
 
@@ -155,7 +155,7 @@ def plan_workflow(
     if not matched_steps:
         matched_steps = [
             WorkflowStep.retrieve_gitlab_issue,
-            WorkflowStep.post_linkedin_update,
+            WorkflowStep.send_slack_notification,
             WorkflowStep.schedule_calendar_meeting,
         ]
 
@@ -181,7 +181,7 @@ def plan_workflow(
         high_risk_keywords=[],
         gitlab_project_id=gitlab_project_id,
         gitlab_issue_iid=gitlab_issue_iid,
-        linkedin_post=linkedin_post,
+        slack_channel=slack_channel,
         calendar_id=calendar_id,
     )
 
@@ -191,7 +191,7 @@ def build_permission_contract_scopes(steps: List[WorkflowStep]) -> dict:
     Return the minimal scopes required for the given workflow steps.
     Used to populate the PermissionContract before execution.
     """
-    scopes: dict = {"gitlab": [], "linkedin": [], "google_calendar": []}
+    scopes: dict = {"gitlab": [], "slack": [], "google_calendar": []}
 
     for step in steps:
         if step == WorkflowStep.retrieve_gitlab_issue:

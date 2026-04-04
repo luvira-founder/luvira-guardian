@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # Demo defaults
     demo_default_gitlab_project_id: str = ""
     demo_default_gitlab_issue_iid: str = ""
-    demo_default_linkedin_post: str = ""
+    demo_default_slack_channel: str = ""
     demo_default_calendar_id: str = "primary"
 
     @property

@@ -43,12 +43,6 @@ _SUPPORTED_SERVICES: List[Dict] = [
         "required_scopes": ["chat:write"],
     },
     {
-        "name": "linkedin",
-        "display": "LinkedIn",
-        "provider": "linkedin",
-        "required_scopes": ["w_member_social"],
-    },
-    {
         "name": "google-calendar",
         "display": "Google Calendar",
         "provider": "google-oauth2",
@@ -130,7 +124,6 @@ async def reconnect_service(
     connection_map: Dict[str, str] = {
         "gitlab": "gitlab",
         "slack": "sign-in-with-slack",
-        "linkedin": "linkedin",
         "google-calendar": "google-oauth2",
     }
 

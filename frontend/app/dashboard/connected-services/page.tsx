@@ -170,8 +170,6 @@ function ConnectedServicesContent() {
   const { connect } = useServiceConnect();
   const { mutateAsync: disconnectServiceMutation } = useDisconnectService();
 
-
-
   useEffect(() => {
     const connected = searchParams.get("connected");
     if (connected) {
@@ -183,7 +181,9 @@ function ConnectedServicesContent() {
     }
   }, [searchParams]);
 
-  const applyStatuses = (statuses: import("@/services/types").TServiceStatus[]) => {
+  const applyStatuses = (
+    statuses: import("@/services/types").TServiceStatus[],
+  ) => {
     setServices((prev) =>
       prev.map((s) => {
         const match = statuses.find((st) => st.service === s.name);
@@ -191,7 +191,8 @@ function ConnectedServicesContent() {
         return {
           ...s,
           status: match.state,
-          scopes: match.granted_scopes.length > 0 ? match.granted_scopes : s.scopes,
+          scopes:
+            match.granted_scopes.length > 0 ? match.granted_scopes : s.scopes,
         };
       }),
     );
@@ -224,7 +225,10 @@ function ConnectedServicesContent() {
     try {
       const ma_token = await getMyAccountToken();
       if (!ma_token) return;
-      await disconnectServiceMutation({ connection: id as TConnection, ma_token });
+      await disconnectServiceMutation({
+        connection: id as TConnection,
+        ma_token,
+      });
       const { services: statuses } = await checkServicesConnectionStatus();
       applyStatuses(statuses);
     } catch (error) {
@@ -258,10 +262,11 @@ function ConnectedServicesContent() {
         </div>
 
         <div className="flex flex-col items-end gap-1">
-          <button
+          <Button
+            variant="default"
             onClick={handleCheckServices}
             disabled={isChecking}
-            className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-[#2db8b8] border border-[#3bcaca]/40 rounded-lg hover:bg-[#3bcaca]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 text-[13px] font-medium text-white border bg-[#3bcaca] rounded-lg cursor-pointer hover:bg-teal-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg
               className={`w-3.5 h-3.5 ${isChecking ? "animate-spin" : ""}`}
@@ -277,7 +282,7 @@ function ConnectedServicesContent() {
               />
             </svg>
             {isChecking ? "Checking…" : "Check Services"}
-          </button>
+          </Button>
           {lastChecked && (
             <p className="text-[11px] text-gray-400">
               Last checked {lastChecked.toLocaleTimeString()}

@@ -1,14 +1,16 @@
-name: Deploy to Production
+name: Deploy Backend
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
   workflow_dispatch:
 
 jobs:
   deploy:
-    name: Build & Deploy
+    name: Build & Deploy Backend
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

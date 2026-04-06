@@ -1,0 +1,85 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Build & Deploy Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Setup Node ─────────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # ── 3. Install & Build ────────────────────────────────────────────────
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Next.js app
+        working-directory: frontend
+        env:
+          AUTH0_SECRET: ${{ secrets.AUTH0_SECRET }}
+          AUTH0_BASE_URL: ${{ secrets.FRONTEND_BASE_URL }}
+          AUTH0_ISSUER_BASE_URL: ${{ secrets.AUTH0_ISSUER_BASE_URL }}
+          AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
+          AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
+          AUTH0_AUDIENCE: ${{ secrets.AUTH0_AUDIENCE }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_AUTH0_DOMAIN: ${{ secrets.NEXT_PUBLIC_AUTH0_DOMAIN }}
+        run: npm run build
+
+      # ── 4. Configure SSH ──────────────────────────────────────────────────
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.HOST }}" >> ~/.ssh/known_hosts
+
+      # ── 5. Push build to server ───────────────────────────────────────────
+      - name: Sync build to server
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            frontend/.next/ \
+            ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/home/luvira_admin/luvira-guardian/frontend/.next/
+
+          rsync -az \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            frontend/public/ \
+            ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/home/luvira_admin/luvira-guardian/frontend/public/
+
+      # ── 6. Restart app on server ──────────────────────────────────────────
+      - name: Restart frontend
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              "${{ secrets.USERNAME }}@${{ secrets.HOST }}" << 'SSHEOF'
+            set -euo pipefail
+            cd /home/luvira_admin/luvira-guardian/frontend
+            pm2 restart luvira-frontend || pm2 start npm --name luvira-frontend -- start
+            pm2 save
+          SSHEOF
+
+      # ── 7. Health check ───────────────────────────────────────────────────
+      - name: Health check
+        run: |
+          sleep 8
+          curl --fail --silent --show-error "http://${{ secrets.HOST }}:3000"

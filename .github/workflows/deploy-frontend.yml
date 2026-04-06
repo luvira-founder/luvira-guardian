@@ -56,7 +56,14 @@ jobs:
               --name "$CONTAINER" \
               --restart unless-stopped \
               -p 3000:3000 \
-              --env-file "$APP_DIR/frontend/.env.production" \
+              -e AUTH0_SECRET='${{ secrets.AUTH0_SECRET }}' \
+              -e AUTH0_BASE_URL='${{ secrets.FRONTEND_BASE_URL }}' \
+              -e AUTH0_ISSUER_BASE_URL='${{ secrets.AUTH0_ISSUER_BASE_URL }}' \
+              -e AUTH0_CLIENT_ID='${{ secrets.AUTH0_CLIENT_ID }}' \
+              -e AUTH0_CLIENT_SECRET='${{ secrets.AUTH0_CLIENT_SECRET }}' \
+              -e AUTH0_AUDIENCE='${{ secrets.AUTH0_AUDIENCE }}' \
+              -e NEXT_PUBLIC_API_URL='${{ secrets.NEXT_PUBLIC_API_URL }}' \
+              -e NEXT_PUBLIC_AUTH0_DOMAIN='${{ secrets.NEXT_PUBLIC_AUTH0_DOMAIN }}' \
               "$IMAGE"
 
             echo "==> Pruning dangling images..."

@@ -1,4 +1,4 @@
-import { ApprovedStep, Service } from "@/types";
+import { ApprovedStep, Service, WorkflowStep } from "@/types";
 
 export const INITIAL_SERVICES: Service[] = [
   {
@@ -63,5 +63,34 @@ export const INITIAL_STEPS: Array<ApprovedStep> = [
     label: "schedule_calendar_meeting",
     required: false,
     checked: true,
+  },
+];
+
+export const PLAN_STEPS = [
+  "Retrieve GitLab incident issue",
+  "Generate incident summary",
+  "Notify Slack channel",
+  "Schedule follow-up meeting",
+];
+
+export const STEP_ID_TO_ACTION: Record<string, string> = {
+  "gitlab-read": "retrieve_gitlab_issue",
+  summary: "generate_incident_summary",
+  "slack-message": "send_slack_notification",
+  "calendar-create": "schedule_calendar_meeting",
+};
+
+export const WORKFLOW_STEPS: Omit<WorkflowStep, "status">[] = [
+  { id: "gitlab-read", label: "GitLab issue retrieved", service: "GitLab" },
+  {
+    id: "summary",
+    label: "Incident summary generated",
+    service: "Luvira Guardian",
+  },
+  { id: "slack-message", label: "Slack message sent", service: "Slack" },
+  {
+    id: "calendar-create",
+    label: "Calendar event created",
+    service: "Google Calendar",
   },
 ];

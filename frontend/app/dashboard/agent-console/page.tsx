@@ -4,38 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { ConsoleState, StepStatus, WorkflowStep } from "@/types";
 import { useExecuteWorkFlow } from "@/services/mutations";
 import { useQueryClient } from "@tanstack/react-query";
-
-const PLAN_STEPS = [
-  "Retrieve GitLab incident issue",
-  "Generate incident summary",
-  "Notify Slack channel",
-  "Schedule follow-up meeting",
-];
-
-// Maps local step IDs to the action names the API returns
-const STEP_ID_TO_ACTION: Record<string, string> = {
-  "gitlab-read": "retrieve_gitlab_issue",
-  summary: "generate_incident_summary",
-  "slack-message": "send_slack_notification",
-  "calendar-create": "schedule_calendar_meeting",
-};
-
-const WORKFLOW_STEPS: Omit<WorkflowStep, "status">[] = [
-  { id: "gitlab-read", label: "GitLab issue retrieved", service: "GitLab" },
-  {
-    id: "summary",
-    label: "Incident summary generated",
-    service: "Luvira Guardian",
-  },
-  { id: "slack-message", label: "Slack message sent", service: "Slack" },
-  {
-    id: "calendar-create",
-    label: "Calendar event created",
-    service: "Google Calendar",
-  },
-];
-
-// ── Sub-components ─────────────────────────────────────────────────────────
+import { PLAN_STEPS, STEP_ID_TO_ACTION, WORKFLOW_STEPS } from "@/lib/constants";
 
 function StepIcon({ status }: { status: StepStatus }) {
   if (status === "success") {
